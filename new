@@ -1,0 +1,515 @@
+-- Variáveis globais
+local player = game.Players.LocalPlayer
+local runService = game:GetService("RunService")
+local targetPlayer = nil
+local goEnabled = false
+local goConnection = nil
+local noclipConnection = nil
+local roubarEnabled = false
+local roubarPlataforma = nil
+local voandoRoubo = false
+local shiftlockEnabled = false
+local noclipEnabled = false
+local superJumpEnabled = false
+local espEnabled = false
+
+-- Carrega a Rayfield UI Library
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+
+-- Cria a janela
+local Window = Rayfield:CreateWindow({
+   Name = "FRITISCRIPTS",
+   LoadingTitle = "Carregando...",
+   LoadingSubtitle = "by Friti",
+   ConfigurationSaving = {
+      Enabled = false,
+      FolderName = nil,
+      FileName = nil
+   },
+   KeySystem = false
+})
+
+-- Cria a aba principal
+local MainTab = Window:CreateTab("Principal", 4483362458)
+
+-- Roubar (Steal)
+MainTab:CreateToggle({
+    Name = "Roubar (Steal)",
+    Info = "Plataforma fixa",
+    CurrentValue = false,
+    Flag = "ToggleRoubar",
+    Callback = function(state)
+        roubarEnabled = state
+        if not state then
+            if roubarPlataforma and roubarPlataforma.Parent then
+                roubarPlataforma:Destroy()
+                roubarPlataforma = nil
+            end
+            voandoRoubo = false
+        else
+            if not roubarPlataforma or not roubarPlataforma.Parent then
+                roubarPlataforma = Instance.new("Part")
+                roubarPlataforma.Size = Vector3.new(6, 1, 6)
+                roubarPlataforma.Anchored = true
+                roubarPlataforma.CanCollide = true
+                roubarPlataforma.Transparency = 0.2
+                roubarPlataforma.BrickColor = BrickColor.new("Really red")
+                roubarPlataforma.Material = Enum.Material.Neon
+                roubarPlataforma.Parent = workspace
+                
+                if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+                    local playerPos = player.Character.HumanoidRootPart.Position
+                    roubarPlataforma.CFrame = CFrame.new(playerPos.X, playerPos.Y - 4, playerPos.Z)
+                end
+            end
+        end
+    end
+})
+
+-- Steal2
+MainTab:CreateButton({
+    Name = "Steal2",
+    Info = "Voa até a plataforma",
+    Interact = 'Click',
+    Callback = function()
+        if roubarPlataforma and roubarPlataforma.Parent then
+            voandoRoubo = true
+            
+            spawn(function()
+                while voandoRoubo and roubarPlataforma and roubarPlataforma.Parent do
+                    if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+                        for _, part in pairs(player.Character:GetDescendants()) do
+                            if part:IsA("BasePart") then
+                                part.CanCollide = false
+                            end
+                        end
+                        
+                        local playerRoot = player.Character.HumanoidRootPart
+                        local targetPos = roubarPlataforma.Position + Vector3.new(0, 3, 0)
+                        local direction = (targetPos - playerRoot.Position)
+                        
+                        if direction.Magnitude > 1 then
+                            playerRoot.CFrame = CFrame.new(
+                                playerRoot.Position + direction.Unit * 0.3,
+                                targetPos
+                            )
+                        else
+                            voandoRoubo = false
+                            for _, part in pairs(player.Character:GetDescendants()) do
+                                if part:IsA("BasePart") then
+                                    part.CanCollide = true
+                                end
+                            end
+                            
+                            local humanoid = player.Character:FindFirstChild("Humanoid")
+                            if humanoid then
+                                humanoid:ChangeState(Enum.HumanoidStateType.Landing)
+                                playerRoot.Velocity = Vector3.new(0, 0, 0)
+                            end
+                            break
+                        end
+                    end
+                    runService.Heartbeat:Wait()
+                end
+                
+                if player.Character then
+                    for _, part in pairs(player.Character:GetDescendants()) do
+                        if part:IsA("BasePart") then
+                            part.CanCollide = true
+                        end
+                    end
+                    
+                    local playerRoot = player.Character:FindFirstChild("HumanoidRootPart")
+                    if playerRoot then
+                        playerRoot.Velocity = Vector3.new(0, 0, 0)
+                    end
+                end
+            end)
+        end
+    end
+})
+
+-- Go
+MainTab:CreateToggle({
+    Name = "Go",
+    Info = "Seguir jogador mais próximo",
+    CurrentValue = false,
+    Flag = "ToggleGo",
+    Callback = function(state)
+        goEnabled = state
+        
+        if state then
+            -- Ativa noclip durante o Go
+            if not noclipConnection then
+                noclipConnection = game:GetService("RunService").Stepped:Connect(function()
+                    if player.Character then
+                        for _, part in pairs(player.Character:GetDescendants()) do
+                            if part:IsA("BasePart") then
+                                part.CanCollide = false
+                            end
+                        end
+                    end
+                end)
+            end
+            
+            -- Inicia o loop de seguir
+            if not goConnection then
+                goConnection = game:GetService("RunService").Heartbeat:Connect(function()
+                    if goEnabled then
+                        -- Encontra o jogador mais próximo
+                        local nearestPlayer = nil
+                        local shortestDistance = math.huge
+                        
+                        if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+                            local playerRoot = player.Character.HumanoidRootPart
+                            
+                            for _, otherPlayer in pairs(game.Players:GetPlayers()) do
+                                if otherPlayer ~= player and 
+                                   otherPlayer.Character and 
+                                   otherPlayer.Character:FindFirstChild("HumanoidRootPart") and
+                                   otherPlayer.Character:FindFirstChild("Humanoid") and
+                                   otherPlayer.Character.Humanoid.Health > 0 then
+                                    
+                                    local distance = (otherPlayer.Character.HumanoidRootPart.Position - playerRoot.Position).Magnitude
+                                    if distance < shortestDistance then
+                                        shortestDistance = distance
+                                        nearestPlayer = otherPlayer
+                                    end
+                                end
+                            end
+                            
+                            -- Move em direção ao jogador mais próximo
+                            if nearestPlayer and nearestPlayer.Character then
+                                local targetRoot = nearestPlayer.Character.HumanoidRootPart
+                                local targetPos = targetRoot.Position
+                                local direction = (targetPos - playerRoot.Position).Unit
+                                
+                                -- Aplica velocidade
+                                playerRoot.Velocity = direction * 25 * 2.05
+                                playerRoot.CFrame = CFrame.new(playerRoot.Position, targetPos)
+                                
+                                -- Atualiza animação
+                                local humanoid = player.Character:FindFirstChild("Humanoid")
+                                if humanoid then
+                                    humanoid:ChangeState(Enum.HumanoidStateType.Flying)
+                                end
+                            end
+                        end
+                    end
+                end)
+            end
+        else
+            -- Desativa noclip
+            if noclipConnection then
+                noclipConnection:Disconnect()
+                noclipConnection = nil
+            end
+            
+            -- Para de seguir
+            if goConnection then
+                goConnection:Disconnect()
+                goConnection = nil
+            end
+            
+            -- Reseta o estado do personagem
+            if player.Character then
+                -- Reativa colisões
+                for _, part in pairs(player.Character:GetDescendants()) do
+                    if part:IsA("BasePart") then
+                        part.CanCollide = true
+                    end
+                end
+                
+                -- Para o movimento
+                local humanoid = player.Character:FindFirstChild("Humanoid")
+                if humanoid then
+                    humanoid:ChangeState(Enum.HumanoidStateType.Landing)
+                end
+                
+                -- Zera a velocidade
+                local rootPart = player.Character:FindFirstChild("HumanoidRootPart")
+                if rootPart then
+                    rootPart.Velocity = Vector3.new(0, 0, 0)
+                end
+            end
+        end
+    end
+})
+
+-- Noclip
+MainTab:CreateToggle({
+    Name = "Noclip",
+    Info = "Atravessa paredes",
+    CurrentValue = false,
+    Flag = "ToggleNoclip",
+    Callback = function(state)
+        noclipEnabled = state
+        if state then
+            if not noclipConnection then
+                noclipConnection = runService.Stepped:Connect(function()
+                    if player.Character then
+                        for _, part in pairs(player.Character:GetDescendants()) do
+                            if part:IsA("BasePart") then
+                                part.CanCollide = false
+                            end
+                        end
+                    end
+                end)
+            end
+        else
+            if noclipConnection then
+                noclipConnection:Disconnect()
+                noclipConnection = nil
+            end
+            if player.Character then
+                for _, part in pairs(player.Character:GetDescendants()) do
+                    if part:IsA("BasePart") then
+                        part.CanCollide = true
+                    end
+                end
+            end
+        end
+    end
+})
+
+-- Super Jump
+MainTab:CreateToggle({
+    Name = "Super Jump",
+    Info = "Pulo alto",
+    CurrentValue = false,
+    Flag = "ToggleSuperJump",
+    Callback = function(state)
+        superJumpEnabled = state
+        if player.Character then
+            local humanoid = player.Character:FindFirstChild("Humanoid")
+            if humanoid then
+                if state then
+                    humanoid.JumpPower = 150
+                    humanoid.JumpHeight = 150
+                    humanoid:SetStateEnabled(Enum.HumanoidStateType.Jumping, true)
+                    humanoid.StateChanged:Connect(function(old, new)
+                        if new == Enum.HumanoidStateType.Jumping and superJumpEnabled then
+                            local rootPart = player.Character:FindFirstChild("HumanoidRootPart")
+                            if rootPart then
+                                rootPart.Velocity = Vector3.new(rootPart.Velocity.X, 200, rootPart.Velocity.Z)
+                            end
+                        end
+                    end)
+                else
+                    humanoid.JumpPower = 50
+                    humanoid.JumpHeight = 50
+                    humanoid:SetStateEnabled(Enum.HumanoidStateType.Jumping, true)
+                end
+            end
+        end
+    end
+})
+
+-- SHIFTLOCK
+MainTab:CreateToggle({
+    Name = "SHIFTLOCK",
+    Info = "Trava a câmera",
+    CurrentValue = false,
+    Flag = "ToggleShiftlock",
+    Callback = function(state)
+        shiftlockEnabled = state
+        if player.Character then
+            -- Detecta se é dispositivo móvel
+            local isMobile = game:GetService("UserInputService").TouchEnabled
+            
+            if state then
+                -- Configuração para PC
+                game.Players.LocalPlayer.DevEnableMouseLock = true
+                
+                -- Configuração adicional para Mobile
+                if isMobile then
+                    -- Habilita Shift Lock no mobile
+                    local character = player.Character
+                    if character then
+                        -- Configura a câmera
+                        local humanoid = character:FindFirstChild("Humanoid")
+                        if humanoid then
+                            -- Define offset da câmera para simular Shift Lock
+                            humanoid.CameraOffset = Vector3.new(2, 0, 0)
+                            -- Força modo de câmera em primeira pessoa
+                            player.CameraMode = Enum.CameraMode.LockFirstPerson
+                            -- Configura rotação automática
+                            humanoid.AutoRotate = false
+                            -- Configura a câmera para seguir o personagem
+                            workspace.CurrentCamera.CameraSubject = humanoid
+                            workspace.CurrentCamera.CameraType = Enum.CameraType.Custom
+                            
+                            -- Conecta evento de atualização da câmera
+                            if not _G.ShiftLockCameraUpdate then
+                                _G.ShiftLockCameraUpdate = game:GetService("RunService").RenderStepped:Connect(function()
+                                    if shiftlockEnabled and character:FindFirstChild("HumanoidRootPart") then
+                                        local rootPart = character.HumanoidRootPart
+                                        -- Mantém a câmera na posição correta
+                                        workspace.CurrentCamera.CFrame = CFrame.new(
+                                            rootPart.Position + Vector3.new(2, 2, 0),
+                                            rootPart.Position + rootPart.CFrame.LookVector * 10
+                                        )
+                                    end
+                                end)
+                            end
+                        end
+                    end
+                end
+            else
+                -- Desativa para PC
+                game.Players.LocalPlayer.DevEnableMouseLock = false
+                
+                -- Desativa para Mobile
+                if isMobile then
+                    local character = player.Character
+                    if character then
+                        local humanoid = character:FindFirstChild("Humanoid")
+                        if humanoid then
+                            -- Reseta configurações da câmera
+                            humanoid.CameraOffset = Vector3.new(0, 0, 0)
+                            player.CameraMode = Enum.CameraMode.Classic
+                            humanoid.AutoRotate = true
+                            workspace.CurrentCamera.CameraType = Enum.CameraType.Custom
+                            
+                            -- Desconecta evento de atualização da câmera
+                            if _G.ShiftLockCameraUpdate then
+                                _G.ShiftLockCameraUpdate:Disconnect()
+                                _G.ShiftLockCameraUpdate = nil
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+})
+
+-- ESP
+MainTab:CreateToggle({
+    Name = "ESP",
+    Info = "Veja outros jogadores",
+    CurrentValue = false,
+    Flag = "ToggleESP",
+    Callback = function(state)
+        espEnabled = state
+        
+        -- Remove ESP existente
+        for _, esp in pairs(game:GetService("CoreGui"):GetChildren()) do
+            if esp.Name == "ESP_Box" then
+                esp:Destroy()
+            end
+        end
+        
+        if state then
+            -- Função para adicionar ESP em um jogador
+            local function addESP(player)
+                -- Verifica se o jogador já tem ESP
+                for _, existingEsp in pairs(game:GetService("CoreGui"):GetChildren()) do
+                    if existingEsp.Name == "ESP_Box" and existingEsp:FindFirstChild("PlayerName") and existingEsp.PlayerName.Value == player.Name then
+                        return
+                    end
+                end
+                
+                -- Função para criar o ESP no personagem
+                local function createESPForCharacter(character)
+                    if character and character:FindFirstChild("HumanoidRootPart") then
+                        -- Cria o BillboardGui
+                        local billboardGui = Instance.new("BillboardGui")
+                        billboardGui.Name = "ESP_Box"
+                        billboardGui.AlwaysOnTop = true
+                        billboardGui.Size = UDim2.new(4, 0, 5, 0)
+                        billboardGui.StudsOffset = Vector3.new(0, 0, 0)
+                        billboardGui.Parent = game:GetService("CoreGui")
+                        billboardGui.Adornee = character:FindFirstChild("HumanoidRootPart")
+                        
+                        -- Adiciona o nome do jogador como uma StringValue para rastreamento
+                        local playerName = Instance.new("StringValue")
+                        playerName.Name = "PlayerName"
+                        playerName.Value = player.Name
+                        playerName.Parent = billboardGui
+                        
+                        -- Cria o frame vermelho com cor mais forte
+                        local frame = Instance.new("Frame")
+                        frame.Size = UDim2.new(1, 0, 1, 0)
+                        frame.BackgroundTransparency = 0.2
+                        frame.BorderSizePixel = 4
+                        frame.BorderColor3 = Color3.new(1, 0, 0)
+                        frame.BackgroundColor3 = Color3.new(1, 0, 0)
+                        frame.Parent = billboardGui
+                        
+                        -- Adiciona um UIGradient para fazer a cor ainda mais intensa
+                        local gradient = Instance.new("UIGradient")
+                        gradient.Color = ColorSequence.new({
+                            ColorSequenceKeypoint.new(0, Color3.new(1, 0, 0)),
+                            ColorSequenceKeypoint.new(0.5, Color3.new(1, 0.15, 0.15)),
+                            ColorSequenceKeypoint.new(1, Color3.new(1, 0, 0))
+                        })
+                        gradient.Parent = frame
+                        
+                        -- Atualiza o tamanho do ESP baseado na distância
+                        local updateConnection = game:GetService("RunService").RenderStepped:Connect(function()
+                            if not espEnabled or not character:IsDescendantOf(game) then
+                                updateConnection:Disconnect()
+                                billboardGui:Destroy()
+                                return
+                            end
+                            
+                            if character and character:FindFirstChild("HumanoidRootPart") and game.Players.LocalPlayer.Character and game.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                                local distance = (game.Players.LocalPlayer.Character.HumanoidRootPart.Position - character.HumanoidRootPart.Position).Magnitude
+                                billboardGui.Size = UDim2.new(4, 0, 5, 0)
+                                billboardGui.StudsOffset = Vector3.new(0, 0, 0)
+                            end
+                        end)
+                    end
+                end
+                
+                -- Cria ESP inicial se o jogador já tiver um personagem
+                if player.Character then
+                    createESPForCharacter(player.Character)
+                end
+                
+                -- Conecta ao evento CharacterAdded para atualizar o ESP quando o personagem respawnar
+                player.CharacterAdded:Connect(function(character)
+                    if espEnabled then
+                        -- Remove ESP antigo do jogador
+                        for _, existingEsp in pairs(game:GetService("CoreGui"):GetChildren()) do
+                            if existingEsp.Name == "ESP_Box" and existingEsp:FindFirstChild("PlayerName") and existingEsp.PlayerName.Value == player.Name then
+                                existingEsp:Destroy()
+                            end
+                        end
+                        -- Cria novo ESP
+                        createESPForCharacter(character)
+                    end
+                end)
+            end
+            
+            -- Adiciona ESP em todos os jogadores existentes
+            for _, player in pairs(game.Players:GetPlayers()) do
+                if player ~= game.Players.LocalPlayer then
+                    addESP(player)
+                end
+            end
+            
+            -- Conecta ao evento PlayerAdded para novos jogadores
+            local playerAddedConnection
+            playerAddedConnection = game.Players.PlayerAdded:Connect(function(player)
+                if espEnabled and player ~= game.Players.LocalPlayer then
+                    addESP(player)
+                end
+            end)
+            
+            -- Desconecta o evento quando o ESP é desativado
+            local function cleanupConnections()
+                if playerAddedConnection then
+                    playerAddedConnection:Disconnect()
+                    playerAddedConnection = nil
+                end
+            end
+            
+            -- Limpa as conexões quando o ESP é desativado
+            if not state then
+                cleanupConnections()
+            end
+        end
+    end
+}) 
