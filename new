@@ -90,7 +90,7 @@ MainTab:CreateButton({
                         
                         if direction.Magnitude > 1 then
                             playerRoot.CFrame = CFrame.new(
-                                playerRoot.Position + direction.Unit * 2,
+                                playerRoot.Position + direction.Unit * 1.3,
                                 targetPos
                             )
                         else
