@@ -328,75 +328,33 @@ MainTab:CreateToggle({
                         local humanoid = character:FindFirstChild("Humanoid")
                         if humanoid then
                             -- Configura a câmera para comportamento padrão do Shift Lock
-                            humanoid.CameraOffset = Vector3.new(2, 0.5, 0)
                             workspace.CurrentCamera.CameraType = Enum.CameraType.Custom
                             
-                            -- Desativa rotação automática para permitir controle manual
+                            -- Mantém o controle padrão da câmera
+                            game:GetService("RunService"):BindToRenderStep("ShiftLockUpdate", Enum.RenderPriority.Camera.Value + 1, function()
+                                if shiftlockEnabled and character:FindFirstChild("HumanoidRootPart") then
+                                    local rootPart = character.HumanoidRootPart
+                                    
+                                    -- Obtém a direção atual da câmera
+                                    local camera = workspace.CurrentCamera
+                                    local cameraLook = camera.CFrame.LookVector
+                                    local flatLook = Vector3.new(cameraLook.X, 0, cameraLook.Z).Unit
+                                    
+                                    -- Atualiza apenas a rotação do personagem para seguir a câmera
+                                    rootPart.CFrame = CFrame.new(rootPart.Position, rootPart.Position + flatLook)
+                                end
+                            end)
+                            
+                            -- Desativa rotação automática
                             humanoid.AutoRotate = false
                             
-                            -- Configura posição inicial da câmera
-                            if character:FindFirstChild("HumanoidRootPart") then
-                                local rootPart = character.HumanoidRootPart
-                                workspace.CurrentCamera.CFrame = CFrame.new(
-                                    rootPart.Position + rootPart.CFrame.RightVector * 2 + Vector3.new(0, 0.5, 0),
-                                    rootPart.Position + rootPart.CFrame.LookVector * 10
-                                )
-                            end
-                            
-                            -- Adiciona controle de toque para rotação da câmera
-                            if not _G.TouchControlsEnabled then
-                                _G.TouchControlsEnabled = true
-                                
-                                local UserInputService = game:GetService("UserInputService")
-                                local startPos
-                                local dragging = false
-                                local lastUpdate = tick()
-                                
-                                -- Limpa conexões antigas se existirem
-                                if _G.TouchStartConnection then
-                                    _G.TouchStartConnection:Disconnect()
-                                end
-                                if _G.TouchMoveConnection then
-                                    _G.TouchMoveConnection:Disconnect()
-                                end
-                                if _G.TouchEndConnection then
-                                    _G.TouchEndConnection:Disconnect()
-                                end
-                                
-                                -- Novas conexões de toque
-                                _G.TouchStartConnection = UserInputService.TouchStarted:Connect(function(touch)
-                                    startPos = touch.Position
-                                    dragging = true
-                                end)
-                                
-                                _G.TouchMoveConnection = UserInputService.TouchMoved:Connect(function(touch)
-                                    if dragging and shiftlockEnabled then
-                                        local currentTime = tick()
-                                        -- Limita a taxa de atualização para evitar rotação muito rápida
-                                        if currentTime - lastUpdate > 0.016 then  -- Aproximadamente 60 FPS
-                                            local delta = touch.Position - startPos
-                                            startPos = touch.Position
-                                            
-                                            if character:FindFirstChild("HumanoidRootPart") then
-                                                local rootPart = character.HumanoidRootPart
-                                                -- Rotaciona o personagem e a câmera
-                                                local sensitivity = 0.25  -- Reduzido para movimento mais suave
-                                                local rotation = CFrame.fromEulerAnglesYXZ(0, -delta.X * sensitivity * 0.01, 0)
-                                                rootPart.CFrame = rootPart.CFrame * rotation
-                                                
-                                                -- Atualiza a posição da câmera
-                                                workspace.CurrentCamera.CFrame = CFrame.new(
-                                                    rootPart.Position + rootPart.CFrame.RightVector * 2 + Vector3.new(0, 0.5, 0),
-                                                    rootPart.Position + rootPart.CFrame.LookVector * 10
-                                                )
-                                            end
-                                            lastUpdate = currentTime
-                                        end
+                            -- Configura a câmera para permitir zoom
+                            if not _G.ZoomConnection then
+                                _G.ZoomConnection = game:GetService("UserInputService").TouchPinch:Connect(function(scale, velocity, state)
+                                    -- Permite zoom padrão do Roblox
+                                    if humanoid then
+                                        humanoid.CameraOffset = Vector3.new(2, 0.5, 0)
                                     end
-                                end)
-                                
-                                _G.TouchEndConnection = UserInputService.TouchEnded:Connect(function()
-                                    dragging = false
                                 end)
                             end
                         end
@@ -417,22 +375,14 @@ MainTab:CreateToggle({
                             humanoid.AutoRotate = true
                             workspace.CurrentCamera.CameraType = Enum.CameraType.Custom
                             
-                            -- Limpa todas as conexões
-                            if _G.TouchStartConnection then
-                                _G.TouchStartConnection:Disconnect()
-                                _G.TouchStartConnection = nil
-                            end
-                            if _G.TouchMoveConnection then
-                                _G.TouchMoveConnection:Disconnect()
-                                _G.TouchMoveConnection = nil
-                            end
-                            if _G.TouchEndConnection then
-                                _G.TouchEndConnection:Disconnect()
-                                _G.TouchEndConnection = nil
-                            end
+                            -- Remove o update do ShiftLock
+                            game:GetService("RunService"):UnbindFromRenderStep("ShiftLockUpdate")
                             
-                            -- Reseta controles de toque
-                            _G.TouchControlsEnabled = false
+                            -- Desconecta o evento de zoom
+                            if _G.ZoomConnection then
+                                _G.ZoomConnection:Disconnect()
+                                _G.ZoomConnection = nil
+                            end
                         end
                     end
                 end
