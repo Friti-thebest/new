@@ -78,7 +78,7 @@ MainTab:CreateButton({
             -- Detecta se é dispositivo móvel
             local isMobile = game:GetService("UserInputService").TouchEnabled
             -- Define a velocidade baseada no dispositivo
-            local velocidade = isMobile and 1.20 or 0.283  -- 1.20 para mobile, 0.283 para PC (0.435 ÷ 1.65)
+            local velocidade = isMobile and 1.20 or 0.087  -- 1.20 para mobile, 0.087 para PC (0.435 ÷ 5)
             
             spawn(function()
                 while voandoRoubo and roubarPlataforma and roubarPlataforma.Parent do
