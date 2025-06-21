@@ -4,6 +4,21 @@ local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 -- Espera a biblioteca carregar
 wait(1)
 
+-- Variáveis globais
+local player = game.Players.LocalPlayer
+local runService = game:GetService("RunService")
+local targetPlayer = nil
+local goEnabled = false
+local goConnection = nil
+local noclipConnection = nil
+local roubarEnabled = false
+local roubarPlataforma = nil
+local voandoRoubo = false
+local shiftlockEnabled = false
+local noclipEnabled = false
+local superJumpEnabled = false
+local espEnabled = false
+
 -- Cria a janela principal
 local Window = Rayfield:CreateWindow({
    Name = "FRITISCRIPTS",
@@ -119,16 +134,6 @@ MainTab:CreateButton({
                 end
             end)
         end
-    end
-})
-
--- Instant Steal
-MainTab:CreateButton({
-    Name = "Instant Steal",
-    Info = "Rouba instantaneamente",
-    Interact = 'Click',
-    Callback = function()
-        game.ReplicatedStorage.Packages.Net["RE/StealService/DeliverySteal"]:FireServer()
     end
 })
 
@@ -606,18 +611,3 @@ MainTab:CreateToggle({
         end
     end
 })
-
--- Variáveis globais
-local player = game.Players.LocalPlayer
-local runService = game:GetService("RunService")
-local targetPlayer = nil
-local goEnabled = false
-local goConnection = nil
-local noclipConnection = nil
-local roubarEnabled = false
-local roubarPlataforma = nil
-local voandoRoubo = false
-local shiftlockEnabled = false
-local noclipEnabled = false
-local superJumpEnabled = false
-local espEnabled = false 
