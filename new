@@ -524,4 +524,52 @@ MainTab:CreateToggle({
             end
         end
     end
+})
+
+-- Server Hop
+MainTab:CreateButton({
+    Name = "Server Hop",
+    Info = "Entra em outro servidor",
+    Interact = 'Click',
+    Callback = function()
+        local TeleportService = game:GetService("TeleportService")
+        local HttpService = game:GetService("HttpService")
+        
+        -- Função para pegar servidores disponíveis
+        local function getServers()
+            local servers = {}
+            local url = string.format(
+                "https://games.roblox.com/v1/games/%s/servers/Public?sortOrder=Asc&limit=100",
+                109983668079237
+            )
+            local response = HttpService:JSONDecode(game:HttpGet(url))
+            
+            -- Filtra servidores que não estão cheios
+            for _, server in ipairs(response.data) do
+                if server.playing < server.maxPlayers and server.id ~= game.JobId then
+                    table.insert(servers, server)
+                end
+            end
+            
+            return servers
+        end
+        
+        -- Tenta entrar em um servidor aleatório
+        local function joinRandomServer()
+            local servers = getServers()
+            if #servers > 0 then
+                -- Escolhe um servidor aleatório
+                local randomServer = servers[math.random(1, #servers)]
+                -- Tenta teleportar para o servidor
+                TeleportService:TeleportToPlaceInstance(109983668079237, randomServer.id)
+            else
+                -- Se não encontrar servidores, tenta novamente
+                wait(1)
+                joinRandomServer()
+            end
+        end
+        
+        -- Inicia o processo de server hop
+        joinRandomServer()
+    end
 }) 
