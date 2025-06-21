@@ -1,117 +1,23 @@
--- Carrega o script Instant Steal com nome modificado
-local InstantStealScript = [[
-    -- Carrega a Rayfield UI Library
-    local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+-- Primeiro carregamos o script original do Instant Steal
+loadstring(game:HttpGet("https://raw.githubusercontent.com/Youifpg/Steal-a-Brianrot/refs/heads/main/Instant%20steal.lua"))()
 
-    local Window = Rayfield:CreateWindow({
-        Name = "Steal | Friti Hub",
-        LoadingTitle = "Carregando...",
-        LoadingSubtitle = "by Friti",
-        ConfigurationSaving = {
-            Enabled = false,
-            FolderName = nil,
-            FileName = nil
-        },
-        KeySystem = false
-    })
+-- Espera um pouco para garantir que o hub foi carregado
+wait(1)
 
-    -- Cria a aba principal
-    local MainTab = Window:CreateTab("Roubar", 4483362458)
-
-    -- Botão de Instant Steal
-    MainTab:CreateButton({
-        Name = "Instant Steal",
-        Info = "Rouba instantaneamente",
-        Interact = 'Click',
-        Callback = function()
-            game.ReplicatedStorage.Packages.Net["RE/StealService/DeliverySteal"]:FireServer()
+-- Tenta encontrar e modificar o nome do hub
+local success, error = pcall(function()
+    for _, gui in pairs(game:GetService("CoreGui"):GetChildren()) do
+        if gui.Name:find("Rayfield") then
+            for _, frame in pairs(gui:GetDescendants()) do
+                if frame:IsA("TextLabel") and frame.Text:find("Arbix") then
+                    frame.Text = frame.Text:gsub("Arbix", "Friti")
+                end
+            end
         end
-    })
+    end
+end)
 
-    -- Botão de Server Hop
-    MainTab:CreateButton({
-        Name = "Server Hop",
-        Info = "Troca de servidor",
-        Interact = 'Click',
-        Callback = function()
-            local PlaceID = game.PlaceId
-            local AllIDs = {}
-            local foundAnything = ""
-            local actualHour = os.date("!*t").hour
-            local Deleted = false
-            
-            local File = pcall(function()
-                AllIDs = game:GetService('HttpService'):JSONDecode(readfile("NotSameServers.json"))
-            end)
-            if not File then
-                table.insert(AllIDs, actualHour)
-                writefile("NotSameServers.json", game:GetService('HttpService'):JSONEncode(AllIDs))
-            end
-            
-            function TPReturner()
-                local Site;
-                if foundAnything == "" then
-                    Site = game.HttpService:JSONDecode(game:HttpGet('https://games.roblox.com/v1/games/' .. PlaceID .. '/servers/Public?sortOrder=Asc&limit=100'))
-                else
-                    Site = game.HttpService:JSONDecode(game:HttpGet('https://games.roblox.com/v1/games/' .. PlaceID .. '/servers/Public?sortOrder=Asc&limit=100&cursor=' .. foundAnything))
-                end
-                local ID = ""
-                if Site.nextPageCursor and Site.nextPageCursor ~= "null" and Site.nextPageCursor ~= nil then
-                    foundAnything = Site.nextPageCursor
-                end
-                local num = 0;
-                for i,v in pairs(Site.data) do
-                    local Possible = true
-                    ID = tostring(v.id)
-                    if tonumber(v.maxPlayers) > tonumber(v.playing) then
-                        for _,Existing in pairs(AllIDs) do
-                            if num ~= 0 then
-                                if ID == tostring(Existing) then
-                                    Possible = false
-                                end
-                            else
-                                if tonumber(actualHour) ~= tonumber(Existing) then
-                                    local delFile = pcall(function()
-                                        delfile("NotSameServers.json")
-                                        AllIDs = {}
-                                        table.insert(AllIDs, actualHour)
-                                    end)
-                                end
-                            end
-                            num = num + 1
-                        end
-                        if Possible == true then
-                            table.insert(AllIDs, ID)
-                            wait()
-                            pcall(function()
-                                writefile("NotSameServers.json", game:GetService('HttpService'):JSONEncode(AllIDs))
-                                wait()
-                                game:GetService("TeleportService"):TeleportToPlaceInstance(PlaceID, ID, game.Players.LocalPlayer)
-                            end)
-                            wait(4)
-                        end
-                    end
-                end
-            end
-            
-            function Teleport()
-                while wait() do
-                    pcall(function()
-                        TPReturner()
-                        if foundAnything ~= "" then
-                            TPReturner()
-                        end
-                    end)
-                end
-            end
-            
-            Teleport()
-        end
-    })
-]]
-
-loadstring(InstantStealScript)()
-
+-- Depois carregamos nosso script principal
 -- Variáveis globais
 local player = game.Players.LocalPlayer
 local runService = game:GetService("RunService")
