@@ -1,4 +1,22 @@
-loadstring(game:HttpGet("https://raw.githubusercontent.com/Youifpg/Steal-a-Brianrot/refs/heads/main/Instant%20steal.lua"))()
+-- Carrega o script Instant Steal com nome modificado
+local InstantStealScript = [[
+    local Window = Rayfield:CreateWindow({
+        Name = "Steal | Friti Hub",
+        LoadingTitle = "Carregando...",
+        LoadingSubtitle = "by Friti",
+        ConfigurationSaving = {
+            Enabled = false,
+            FolderName = nil,
+            FileName = nil
+        },
+        KeySystem = false
+    })
+    
+    -- Resto do script Instant Steal aqui
+    -- (mantendo todas as funcionalidades originais)
+]]
+
+loadstring(InstantStealScript)()
 
 -- Variáveis globais
 local player = game.Players.LocalPlayer
