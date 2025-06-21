@@ -18,6 +18,7 @@ local shiftlockEnabled = false
 local noclipEnabled = false
 local superJumpEnabled = false
 local espEnabled = false
+local teleportKillEnabled = false
 
 -- Cria a janela principal
 local Window = Rayfield:CreateWindow({
@@ -482,6 +483,56 @@ MainTab:CreateToggle({
     end
 })
 
+-- Kill Teleport
+MainTab:CreateToggle({
+    Name = "Kill Teleport",
+    Info = "Nasce no local da morte",
+    CurrentValue = false,
+    Flag = "ToggleKillTeleport",
+    Callback = function(state)
+        local lastDeathPosition = nil
+        local deathConnection = nil
+        local spawnConnection = nil
+        
+        if state then
+            -- Conecta ao evento de morte
+            deathConnection = player.Character:WaitForChild("Humanoid").Died:Connect(function()
+                if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+                    lastDeathPosition = player.Character.HumanoidRootPart.CFrame
+                end
+            end)
+            
+            -- Conecta ao evento de spawn
+            spawnConnection = player.CharacterAdded:Connect(function(character)
+                if lastDeathPosition then
+                    local humanoid = character:WaitForChild("Humanoid")
+                    local rootPart = character:WaitForChild("HumanoidRootPart")
+                    
+                    -- Espera um pequeno delay para garantir que o personagem carregou completamente
+                    task.wait(0.5)
+                    
+                    -- Teleporta para a última posição de morte
+                    rootPart.CFrame = lastDeathPosition
+                    
+                    -- Reseta a velocidade para evitar impulso indesejado
+                    rootPart.Velocity = Vector3.new(0, 0, 0)
+                end
+            end)
+        else
+            -- Desconecta os eventos quando desativado
+            if deathConnection then
+                deathConnection:Disconnect()
+                deathConnection = nil
+            end
+            if spawnConnection then
+                spawnConnection:Disconnect()
+                spawnConnection = nil
+            end
+            lastDeathPosition = nil
+        end
+    end
+})
+
 -- ESP
 MainTab:CreateToggle({
     Name = "ESP",
@@ -611,3 +662,53 @@ MainTab:CreateToggle({
         end
     end
 })
+
+-- Kill Teleport
+MainTab:CreateToggle({
+    Name = "Kill Teleport",
+    Info = "Nasce no local da morte",
+    CurrentValue = false,
+    Flag = "ToggleKillTeleport",
+    Callback = function(state)
+        local lastDeathPosition = nil
+        local deathConnection = nil
+        local spawnConnection = nil
+        
+        if state then
+            -- Conecta ao evento de morte
+            deathConnection = player.Character:WaitForChild("Humanoid").Died:Connect(function()
+                if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+                    lastDeathPosition = player.Character.HumanoidRootPart.CFrame
+                end
+            end)
+            
+            -- Conecta ao evento de spawn
+            spawnConnection = player.CharacterAdded:Connect(function(character)
+                if lastDeathPosition then
+                    local humanoid = character:WaitForChild("Humanoid")
+                    local rootPart = character:WaitForChild("HumanoidRootPart")
+                    
+                    -- Espera um pequeno delay para garantir que o personagem carregou completamente
+                    task.wait(0.5)
+                    
+                    -- Teleporta para a última posição de morte
+                    rootPart.CFrame = lastDeathPosition
+                    
+                    -- Reseta a velocidade para evitar impulso indesejado
+                    rootPart.Velocity = Vector3.new(0, 0, 0)
+                end
+            end)
+        else
+            -- Desconecta os eventos quando desativado
+            if deathConnection then
+                deathConnection:Disconnect()
+                deathConnection = nil
+            end
+            if spawnConnection then
+                spawnConnection:Disconnect()
+                spawnConnection = nil
+            end
+            lastDeathPosition = nil
+        end
+    end
+}) 
