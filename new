@@ -328,30 +328,19 @@ MainTab:CreateToggle({
                         local humanoid = character:FindFirstChild("Humanoid")
                         if humanoid then
                             -- Configura a câmera para comportamento padrão do Shift Lock
-                            humanoid.CameraOffset = Vector3.new(2, 0.5, 0)  -- Ajustado para posição padrão do Shift Lock
+                            humanoid.CameraOffset = Vector3.new(2, 0.5, 0)
                             workspace.CurrentCamera.CameraType = Enum.CameraType.Custom
                             
                             -- Desativa rotação automática para permitir controle manual
                             humanoid.AutoRotate = false
                             
-                            -- Configura o modo de câmera para terceira pessoa
-                            if not _G.ShiftLockCameraUpdate then
-                                _G.ShiftLockCameraUpdate = game:GetService("RunService").RenderStepped:Connect(function()
-                                    if shiftlockEnabled and character:FindFirstChild("HumanoidRootPart") then
-                                        local rootPart = character.HumanoidRootPart
-                                        
-                                        -- Mantém a câmera na posição correta do Shift Lock
-                                        workspace.CurrentCamera.CFrame = CFrame.new(
-                                            rootPart.Position + rootPart.CFrame.RightVector * 2 + Vector3.new(0, 0.5, 0),
-                                            rootPart.Position + rootPart.CFrame.LookVector * 10
-                                        )
-                                        
-                                        -- Atualiza a rotação do personagem baseado na direção da câmera
-                                        local lookVector = workspace.CurrentCamera.CFrame.LookVector
-                                        lookVector = Vector3.new(lookVector.X, 0, lookVector.Z).Unit
-                                        rootPart.CFrame = CFrame.new(rootPart.Position, rootPart.Position + lookVector)
-                                    end
-                                end)
+                            -- Configura posição inicial da câmera
+                            if character:FindFirstChild("HumanoidRootPart") then
+                                local rootPart = character.HumanoidRootPart
+                                workspace.CurrentCamera.CFrame = CFrame.new(
+                                    rootPart.Position + rootPart.CFrame.RightVector * 2 + Vector3.new(0, 0.5, 0),
+                                    rootPart.Position + rootPart.CFrame.LookVector * 10
+                                )
                             end
                             
                             -- Adiciona controle de toque para rotação da câmera
@@ -361,28 +350,52 @@ MainTab:CreateToggle({
                                 local UserInputService = game:GetService("UserInputService")
                                 local startPos
                                 local dragging = false
+                                local lastUpdate = tick()
                                 
-                                UserInputService.TouchStarted:Connect(function(touch)
+                                -- Limpa conexões antigas se existirem
+                                if _G.TouchStartConnection then
+                                    _G.TouchStartConnection:Disconnect()
+                                end
+                                if _G.TouchMoveConnection then
+                                    _G.TouchMoveConnection:Disconnect()
+                                end
+                                if _G.TouchEndConnection then
+                                    _G.TouchEndConnection:Disconnect()
+                                end
+                                
+                                -- Novas conexões de toque
+                                _G.TouchStartConnection = UserInputService.TouchStarted:Connect(function(touch)
                                     startPos = touch.Position
                                     dragging = true
                                 end)
                                 
-                                UserInputService.TouchMoved:Connect(function(touch)
+                                _G.TouchMoveConnection = UserInputService.TouchMoved:Connect(function(touch)
                                     if dragging and shiftlockEnabled then
-                                        local delta = touch.Position - startPos
-                                        startPos = touch.Position
-                                        
-                                        -- Rotaciona a câmera baseado no movimento do toque
-                                        local sensitivity = 0.5
-                                        if character:FindFirstChild("HumanoidRootPart") then
-                                            local rootPart = character.HumanoidRootPart
-                                            local currentAngle = rootPart.CFrame
-                                            rootPart.CFrame = currentAngle * CFrame.fromEulerAnglesYXZ(0, -delta.X * sensitivity * 0.01, 0)
+                                        local currentTime = tick()
+                                        -- Limita a taxa de atualização para evitar rotação muito rápida
+                                        if currentTime - lastUpdate > 0.016 then  -- Aproximadamente 60 FPS
+                                            local delta = touch.Position - startPos
+                                            startPos = touch.Position
+                                            
+                                            if character:FindFirstChild("HumanoidRootPart") then
+                                                local rootPart = character.HumanoidRootPart
+                                                -- Rotaciona o personagem e a câmera
+                                                local sensitivity = 0.25  -- Reduzido para movimento mais suave
+                                                local rotation = CFrame.fromEulerAnglesYXZ(0, -delta.X * sensitivity * 0.01, 0)
+                                                rootPart.CFrame = rootPart.CFrame * rotation
+                                                
+                                                -- Atualiza a posição da câmera
+                                                workspace.CurrentCamera.CFrame = CFrame.new(
+                                                    rootPart.Position + rootPart.CFrame.RightVector * 2 + Vector3.new(0, 0.5, 0),
+                                                    rootPart.Position + rootPart.CFrame.LookVector * 10
+                                                )
+                                            end
+                                            lastUpdate = currentTime
                                         end
                                     end
                                 end)
                                 
-                                UserInputService.TouchEnded:Connect(function()
+                                _G.TouchEndConnection = UserInputService.TouchEnded:Connect(function()
                                     dragging = false
                                 end)
                             end
@@ -404,10 +417,18 @@ MainTab:CreateToggle({
                             humanoid.AutoRotate = true
                             workspace.CurrentCamera.CameraType = Enum.CameraType.Custom
                             
-                            -- Desconecta evento de atualização da câmera
-                            if _G.ShiftLockCameraUpdate then
-                                _G.ShiftLockCameraUpdate:Disconnect()
-                                _G.ShiftLockCameraUpdate = nil
+                            -- Limpa todas as conexões
+                            if _G.TouchStartConnection then
+                                _G.TouchStartConnection:Disconnect()
+                                _G.TouchStartConnection = nil
+                            end
+                            if _G.TouchMoveConnection then
+                                _G.TouchMoveConnection:Disconnect()
+                                _G.TouchMoveConnection = nil
+                            end
+                            if _G.TouchEndConnection then
+                                _G.TouchEndConnection:Disconnect()
+                                _G.TouchEndConnection = nil
                             end
                             
                             -- Reseta controles de toque
